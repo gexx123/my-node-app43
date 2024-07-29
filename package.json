@@ -1,7 +1,17 @@
 {
+  "name": "my-node-app43",
+  "version": "1.0.0",
+  "description": "A simple Node.js app for fetching questions from MongoDB.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
-    "express": "^4.19.2",
+    "express": "^^4.19.2",
     "mongodb": "^6.8.0",
     "mongoose": "^8.5.1"
-  }
+  },
+  "keywords": [],
+  "author": "Your Name",
+  "license": "ISC"
 }
