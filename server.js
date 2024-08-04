@@ -13,9 +13,9 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .catch(err => console.log(err));
 
 app.use(express.json());
-app.use('/api/questions', questionRoutes);
+app.use('/api/questions', questionRoutes); // Ensure the correct endpoint
 
-// Basic route
+// Basic route for testing
 app.get('/', (req, res) => {
   res.send('Hello, World!');
 });
