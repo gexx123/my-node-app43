@@ -9,13 +9,13 @@ const MONGO_URI = 'mongodb+srv://tunwalhimanshu:kCyfmscb2spY14yG@paperbot.6vhle9
 
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB connected'))
-  .catch(err => console.log('Error connecting to MongoDB:', err));
+  .catch(err => console.log(err));
 
 app.use(express.json());
 
 // Importing and using the questions route
 const questionRoutes = require('./routes/questions');
-app.use('/api/questions', questionRoutes);
+app.use('/api', questionRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
