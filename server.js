@@ -1,6 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const questionRoutes = require('./routes/questions'); // Ensure the correct path
+const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000; // Use process.env.PORT provided by Render or fallback to 3000
@@ -12,10 +12,16 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log(err));
 
+app.use(cors());
 app.use(express.json());
-app.use('/api/questions', questionRoutes); // Ensure the correct endpoint
 
-// Basic route for testing
+// Import routes
+const questionRoutes = require('./routes/questions');
+
+// Use routes
+app.use('/api/questions', questionRoutes);
+
+// Basic route
 app.get('/', (req, res) => {
   res.send('Hello, World!');
 });
