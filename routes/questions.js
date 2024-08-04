@@ -10,7 +10,7 @@ const questionSchema = new mongoose.Schema({
 const Question = mongoose.model('Question', questionSchema);
 
 // Route to handle POST request to /api/questions
-router.post('/', async (req, res) => {
+router.post('/questions', async (req, res) => {
   try {
     const { entities } = req.body;
 
