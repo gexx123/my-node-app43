@@ -1,13 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
-
-// Define your Mongoose schema and model
-const questionSchema = new mongoose.Schema({
-  text: String,
-  label: String
-});
-const Question = mongoose.model('Question', questionSchema);
+const Question = require('../models/question');  // Adjust the path as necessary
 
 // Route to handle POST request to /api/questions
 router.post('/questions', async (req, res) => {
@@ -18,8 +11,21 @@ router.post('/questions', async (req, res) => {
       return res.status(400).send('Bad Request: Missing or invalid "entities"');
     }
 
-    // Example logic to handle the incoming entities and save to MongoDB
-    const questions = entities.map(entity => new Question(entity));
+    // Ensure the incoming entities have all the required fields
+    const questions = entities.map(entity => new Question({
+      chapter: entity.chapter,
+      questionText: entity.questionText,
+      DifficultyLevel: entity.DifficultyLevel,
+      Subject: entity.Subject,
+      Chaptername: entity.Chaptername,
+      ChapterPagenumber: entity.ChapterPagenumber,
+      ImagePath: entity.ImagePath,
+      TableDataPath: entity.TableDataPath,
+      Topic: entity.Topic,
+      QuestionType: entity.QuestionType,
+      BookTitle: entity.BookTitle,
+      Authors: entity.Authors
+    }));
     await Question.insertMany(questions);
 
     res.status(201).json({ message: 'Questions saved successfully', questions });
