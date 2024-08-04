@@ -15,7 +15,7 @@ app.use(express.json());
 
 // Importing and using the questions route
 const questionRoutes = require('./routes/questions');
-app.use('/api', questionRoutes);
+app.use('/api/questions', questionRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
