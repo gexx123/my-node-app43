@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const questionRoutes = require('./routes/questions'); // Ensure the correct path
 
 const app = express();
 const PORT = process.env.PORT || 3000; // Use process.env.PORT provided by Render or fallback to 3000
@@ -12,10 +13,7 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .catch(err => console.log(err));
 
 app.use(express.json());
-
-// Importing and using the questions route
-const questionRoutes = require('./routes/questions');
-app.use('/api', questionRoutes);
+app.use('/api/questions', questionRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
