@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const Question = require('../models/question');  // Adjust the path as necessary
+const Question = require('../models/question');  // Ensure the correct path
 
 // Route to handle POST request to /api/questions
-router.post('/questions', async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { entities } = req.body;
 
