@@ -1,25 +1,24 @@
 const express = require('express');
-const mongoose = require('mongoose');
-const questionRoutes = require('./routes/questions'); // Ensure the correct path
+const router = express.Router();
+const Question = require('../models/question');  // Ensure the correct path
 
-const app = express();
-const PORT = process.env.PORT || 3000; // Use process.env.PORT provided by Render or fallback to 3000
+// Route to handle POST request to /api/questions
+router.post('/', async (req, res) => {
+  try {
+    const { entities } = req.body;
 
-// MongoDB connection string
-const MONGO_URI = 'mongodb+srv://tunwalhimanshu:kCyfmscb2spY14yG@paperbot.6vhle9d.mongodb.net/schoolData?retryWrites=true&w=majority&appName=paperbot';
+    if (!entities || !Array.isArray(entities)) {
+      return res.status(400).send('Bad Request: Missing or invalid "entities"');
+    }
 
-mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.log(err));
+    const questions = entities.map(entity => new Question(entity));
+    await Question.insertMany(questions);
 
-app.use(express.json());
-app.use('/api/questions', questionRoutes);
-
-// Basic route
-app.get('/', (req, res) => {
-  res.send('Hello, World!');
+    res.status(201).json({ message: 'Questions saved successfully', questions });
+  } catch (error) {
+    console.error('Error saving questions:', error);
+    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+  }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+module.exports = router;
