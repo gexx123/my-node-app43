@@ -15,11 +15,49 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
 app.use(cors());
 app.use(express.json());
 
-// Import routes
-const questionRoutes = require('./routes/questions');
+// Define your Mongoose schema and model
+const questionSchema = new mongoose.Schema({
+  chapter: String,
+  questionText: String,
+  DifficultyLevel: String,
+  Subject: String,
+  Chaptername: String,
+  ChapterPagenumber: String,
+  ImagePath: String,
+  TableDataPath: String,
+  Topic: String,
+  QuestionType: String,
+  BookTitle: String,
+  Authors: String,
+  Class: String
+});
+const Question = mongoose.model('Question', questionSchema);
 
-// Use routes
-app.use('/api/questions', questionRoutes);
+// Route to handle POST request to /api/questions
+app.post('/api/questions', async (req, res) => {
+  try {
+    const { entities } = req.body;
+
+    if (!entities || !Array.isArray(entities)) {
+      return res.status(400).send('Bad Request: Missing or invalid "entities"');
+    }
+
+    // Example logic to handle the incoming entities and fetch from MongoDB
+    const subject = entities.find(e => e.label === 'SUBJECT')?.text;
+    const chapter = entities.find(e => e.label === 'CHAPTER')?.text;
+
+    const query = {};
+    if (subject) query.Subject = subject;
+    if (chapter) query.chapter = chapter;
+
+    const questions = await Question.find(query);
+
+    res.status(200).json({ message: 'Questions retrieved successfully', questions });
+  } catch (error) {
+    console.error('Error fetching questions:', error);
+    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+  }
+});
 
 // Basic route
 app.get('/', (req, res) => {
