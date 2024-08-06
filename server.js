@@ -48,7 +48,7 @@ app.post('/api/questions', async (req, res) => {
 
     const query = {};
     if (subject) query.Subject = subject;
-    if (chapter) query.chapter = chapter;
+    if (chapter) query.Chaptername = chapter;
 
     const questions = await Question.find(query);
 
