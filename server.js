@@ -37,7 +37,7 @@ app.get('/api/questions', async (req, res) => {
   }
 });
 
-// Route to handle POST request to /api/questions/filters with body parameters for filtering
+// Route to handle POST request to /api/questions/filter with body parameters for filtering
 app.post('/api/questions/filter', async (req, res) => {
   try {
     const { DifficultyLevel, type, Topic, chapter, Subject, ChapterPagenumber, BookTitle, Authors, Class } = req.body;
