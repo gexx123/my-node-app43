@@ -3,9 +3,9 @@ const router = express.Router();
 const Question = require('../models/question'); // Adjust the path according to your folder structure
 
 // Route to handle GET request to /api/questions with query parameters for filtering
-router.get('/questions', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const { subject, chapter, difficulty, type, topic, class: classFilter } = req.query;
+    const { subject, chapter, difficulty, type, topic } = req.query;
 
     const query = {};
     if (subject) query.Subject = subject;
@@ -13,7 +13,6 @@ router.get('/questions', async (req, res) => {
     if (difficulty) query.DifficultyLevel = difficulty;
     if (type) query.QuestionType = type;
     if (topic) query.Topic = topic;
-    if (classFilter) query.Class = classFilter;
 
     const questions = await Question.find(query);
 
@@ -25,7 +24,7 @@ router.get('/questions', async (req, res) => {
 });
 
 // Route to handle POST request to /api/questions/filter with body parameters for filtering
-router.post('/questions/filter', async (req, res) => {
+router.post('/filter', async (req, res) => {
   try {
     const { DifficultyLevel, type, Topic, chapter, Subject, ChapterPagenumber, BookTitle, Authors, Class } = req.body;
 
