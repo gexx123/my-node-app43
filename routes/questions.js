@@ -15,11 +15,12 @@ router.get('/questions', async (req, res) => {
 // Get questions with filters
 router.get('/questions/filter', async (req, res) => {
   try {
-    const { subject, difficultyLevel, topic } = req.query;
+    const { subject, difficultyLevel, topic, class: classFilter } = req.query;
     const filters = {};
     if (subject) filters.subject = subject;
     if (difficultyLevel) filters.difficultyLevel = difficultyLevel;
     if (topic) filters.topic = topic;
+    if (classFilter) filters.class = classFilter;
 
     const questions = await Question.find(filters);
     res.json(questions);
@@ -41,7 +42,8 @@ router.post('/questions', async (req, res) => {
     topic: req.body.topic,
     questionType: req.body.questionType,
     bookTitle: req.body.bookTitle,
-    authors: req.body.authors
+    authors: req.body.authors,
+    class: req.body.class // Added Class field
   });
 
   try {
