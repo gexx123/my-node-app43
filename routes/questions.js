@@ -1,8 +1,6 @@
-// routes/question.js
-
 const express = require('express');
 const router = express.Router();
-const Question = require('../models/question'); // Adjust the path according to your folder structure
+const Question = require('../models/question'); // Ensure this path is correct
 
 // Get all questions
 router.get('/questions', async (req, res) => {
