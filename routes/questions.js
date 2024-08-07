@@ -26,18 +26,18 @@ router.get('/questions', async (req, res) => {
 // Route to handle POST request to /api/questions/filter with query parameters for filtering
 router.post('/questions/filter', async (req, res) => {
   try {
-    const { DifficultyLevel, type, Topic, chapter, Subject, ChapterPagenumber, BookTitle, Authors, Class } = req.body;
+    const { difficultyLevel, type, topic, chapter, subject, chapterPagenumber, bookTitle, authors, class: classFilter } = req.body;
 
     const query = {};
-    if (DifficultyLevel) query.DifficultyLevel = DifficultyLevel;
+    if (difficultyLevel) query.DifficultyLevel = difficultyLevel;
     if (type) query.QuestionType = type;
-    if (Topic) query.Topic = Topic;
+    if (topic) query.Topic = topic;
     if (chapter) query.Chaptername = chapter;
-    if (Subject) query.Subject = Subject;
-    if (ChapterPagenumber) query.ChapterPagenumber = ChapterPagenumber;
-    if (BookTitle) query.BookTitle = BookTitle;
-    if (Authors) query.Authors = Authors;
-    if (Class) query.Class = Class;
+    if (subject) query.Subject = subject;
+    if (chapterPagenumber) query.ChapterPagenumber = chapterPagenumber;
+    if (bookTitle) query.BookTitle = bookTitle;
+    if (authors) query.Authors = authors;
+    if (classFilter) query.Class = classFilter;
 
     const questions = await Question.find(query);
 
