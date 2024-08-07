@@ -1,7 +1,9 @@
+// server.js
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const questionRoutes = require('./routes/question'); // Correctly import the route file
+const questionRoutes = require('./routes/question'); // Import the route file
 
 const app = express();
 const PORT = process.env.PORT || 3000; // Use process.env.PORT provided by Render or fallback to 3000
