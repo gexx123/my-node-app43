@@ -1,6 +1,9 @@
+// server.js
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const Question = require('./question'); // Import the Question model
 
 const app = express();
 const PORT = process.env.PORT || 3000; // Use process.env.PORT provided by Render or fallback to 3000
@@ -14,24 +17,6 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
 
 app.use(cors());
 app.use(express.json());
-
-// Define your Mongoose schema and model
-const questionSchema = new mongoose.Schema({
-  chapter: String,
-  questionText: String,
-  DifficultyLevel: String,
-  Subject: String,
-  Chaptername: String,
-  ChapterPagenumber: String,
-  ImagePath: String,
-  TableDataPath: String,
-  Topic: String,
-  QuestionType: String,
-  BookTitle: String,
-  Authors: String,
-  Class: String
-});
-const Question = mongoose.model('Question', questionSchema);
 
 // Route to handle GET request to /api/questions with query parameters for filtering
 app.get('/api/questions', async (req, res) => {
