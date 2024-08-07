@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
-const QuestionSchema = new mongoose.Schema({
+// Define your Mongoose schema and model
+const questionSchema = new mongoose.Schema({
   chapter: String,
   questionText: String,
   DifficultyLevel: String,
@@ -13,7 +14,9 @@ const QuestionSchema = new mongoose.Schema({
   QuestionType: String,
   BookTitle: String,
   Authors: String,
-  Class: String // Added class key
+  Class: String
 });
 
-module.exports = mongoose.model('Question', QuestionSchema);
+const Question = mongoose.model('Question', questionSchema);
+
+module.exports = Question;
