@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const questionRoutes = require('./routes/questions'); // Adjust the path according to your folder structure
+const questionRoutes = require('./routes/questions'); // Import the routes
 
 const app = express();
 const PORT = process.env.PORT || 3000; // Use process.env.PORT provided by Render or fallback to 3000
