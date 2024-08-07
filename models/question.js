@@ -11,7 +11,8 @@ const questionSchema = new mongoose.Schema({
   topic: { type: String },
   questionType: { type: String },
   bookTitle: { type: String },
-  authors: { type: String }
+  authors: { type: String },
+  class: { type: String, required: true } // Added Class field
 });
 
 module.exports = mongoose.model('Question', questionSchema);
