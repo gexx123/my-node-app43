@@ -1,6 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const questionRoutes = require('./routes/questions'); // Import routes
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -14,11 +16,8 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
 app.use(cors());
 app.use(express.json());
 
-// Importing and using the questions route
-const questionRoutes = require('./routes/questions');
-app.use('/api', questionRoutes);
+app.use('/api', questionRoutes); // Use the routes
 
-// Basic route
 app.get('/', (req, res) => {
   res.send('Hello, World!');
 });
