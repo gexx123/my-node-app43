@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const Question = require('./question'); // Import the Question model
+const questionRoutes = require('./routes/questions'); // Import the routes
 
 const app = express();
 const PORT = process.env.PORT || 3000; // Use process.env.PORT provided by Render or fallback to 3000
@@ -16,51 +16,8 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
 app.use(cors());
 app.use(express.json());
 
-// Route to handle GET request to /api/questions with query parameters for filtering
-app.get('/api/questions', async (req, res) => {
-  try {
-    const { subject, chapter, difficulty, type, topic } = req.query;
-
-    const query = {};
-    if (subject) query.Subject = subject;
-    if (chapter) query.Chaptername = chapter;
-    if (difficulty) query.DifficultyLevel = difficulty;
-    if (type) query.QuestionType = type;
-    if (topic) query.Topic = topic;
-
-    const questions = await Question.find(query);
-
-    res.status(200).json({ message: 'Questions retrieved successfully', questions });
-  } catch (error) {
-    console.error('Error fetching questions:', error);
-    res.status(500).json({ error: 'Internal Server Error', details: error.message });
-  }
-});
-
-// Route to handle POST request to /api/questions/filter with query parameters for filtering
-app.post('/api/questions/filter', async (req, res) => {
-  try {
-    const { difficultyLevel, type, topic, chapter, subject, chapterPagenumber, bookTitle, authors, class: classFilter } = req.body;
-
-    const query = {};
-    if (difficultyLevel) query.DifficultyLevel = difficultyLevel;
-    if (type) query.QuestionType = type;
-    if (topic) query.Topic = topic;
-    if (chapter) query.Chaptername = chapter;
-    if (subject) query.Subject = subject;
-    if (chapterPagenumber) query.ChapterPagenumber = chapterPagenumber;
-    if (bookTitle) query.BookTitle = bookTitle;
-    if (authors) query.Authors = authors;
-    if (classFilter) query.Class = classFilter;
-
-    const questions = await Question.find(query);
-
-    res.status(200).json({ message: 'Questions retrieved successfully', questions });
-  } catch (error) {
-    console.error('Error fetching questions:', error);
-    res.status(500).json({ error: 'Internal Server Error', details: error.message });
-  }
-});
+// Use the routes
+app.use('/api', questionRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
