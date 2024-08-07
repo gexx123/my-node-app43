@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const Question = require('../models/question'); // Ensure this path is correct
+const Question = require('../models/question'); // Ensure the path is correct
 
-// Get all questions
+// Route to handle GET request to /api/questions with query parameters for filtering
 router.get('/questions', async (req, res) => {
   try {
     const { subject, chapter, difficulty, type, topic } = req.query;
@@ -23,7 +23,7 @@ router.get('/questions', async (req, res) => {
   }
 });
 
-// Filter questions via POST
+// Route to handle POST request to /api/questions/filter with query parameters for filtering
 router.post('/questions/filter', async (req, res) => {
   try {
     const { DifficultyLevel, type, Topic, chapter, Subject, ChapterPagenumber, BookTitle, Authors, Class } = req.body;
@@ -41,9 +41,9 @@ router.post('/questions/filter', async (req, res) => {
 
     const questions = await Question.find(query);
 
-    res.status(200).json({ message: 'Questions filtered successfully', questions });
+    res.status(200).json({ message: 'Filtered questions retrieved successfully', questions });
   } catch (error) {
-    console.error('Error filtering questions:', error);
+    console.error('Error fetching filtered questions:', error);
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 });
