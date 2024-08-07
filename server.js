@@ -1,10 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const Question = require('./question'); // Import the Question model
-
 const app = express();
-const PORT = process.env.PORT || 3000; // Use process.env.PORT provided by Render or fallback to 3000
+const PORT = process.env.PORT || 3000;
 
 // MongoDB connection string
 const MONGO_URI = 'mongodb+srv://tunwalhimanshu:kCyfmscb2spY14yG@paperbot.6vhle9d.mongodb.net/schoolData?retryWrites=true&w=majority&appName=paperbot';
