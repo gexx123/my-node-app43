@@ -1,27 +1,71 @@
-// routes/questions.js
-
 const express = require('express');
 const router = express.Router();
-const Question = require('../question'); // Adjust the path if necessary
+const Question = require('../models/question');
 
-// Route to handle GET request to /api/questions with query parameters for filtering
+// Get all questions
 router.get('/questions', async (req, res) => {
   try {
-    const { subject, chapter, difficulty, type, topic } = req.query;
+    const questions = await Question.find();
+    res.json(questions);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
-    const query = {};
-    if (subject) query.Subject = subject;
-    if (chapter) query.Chaptername = chapter;
-    if (difficulty) query.DifficultyLevel = difficulty;
-    if (type) query.QuestionType = type;
-    if (topic) query.Topic = topic;
+// Get questions with filters
+router.get('/questions/filter', async (req, res) => {
+  try {
+    const { subject, difficultyLevel, topic } = req.query;
+    const filters = {};
+    if (subject) filters.subject = subject;
+    if (difficultyLevel) filters.difficultyLevel = difficultyLevel;
+    if (topic) filters.topic = topic;
 
-    const questions = await Question.find(query);
+    const questions = await Question.find(filters);
+    res.json(questions);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
-    res.status(200).json({ message: 'Questions retrieved successfully', questions });
-  } catch (error) {
-    console.error('Error fetching questions:', error);
-    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+// Create a new question
+router.post('/questions', async (req, res) => {
+  const question = new Question({
+    questionText: req.body.questionText,
+    difficultyLevel: req.body.difficultyLevel,
+    subject: req.body.subject,
+    chapterName: req.body.chapterName,
+    chapterPageNumber: req.body.chapterPageNumber,
+    imagePath: req.body.imagePath,
+    tableDataPath: req.body.tableDataPath,
+    topic: req.body.topic,
+    questionType: req.body.questionType,
+    bookTitle: req.body.bookTitle,
+    authors: req.body.authors
+  });
+
+  try {
+    const newQuestion = await question.save();
+    res.status(201).json(newQuestion);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// Update a question
+router.patch('/questions/:id', async (req, res) => {
+  try {
+    const question = await Question.findById(req.params.id);
+    if (!question) return res.status(404).json({ message: 'Question not found' });
+
+    Object.keys(req.body).forEach(key => {
+      question[key] = req.body[key];
+    });
+
+    const updatedQuestion = await question.save();
+    res.json(updatedQuestion);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 });
 
