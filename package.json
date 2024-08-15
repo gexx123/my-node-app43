@@ -12,6 +12,9 @@
     "mongodb": "^6.8.0",
     "mongoose": "^8.5.1"
   },
+  "engines": {
+    "node": "20.x"
+  },
   "keywords": [],
   "author": "Your Name",
   "license": "ISC"
