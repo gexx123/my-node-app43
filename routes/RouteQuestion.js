@@ -5,55 +5,31 @@ const ClassModel = require('../models/ModelQuestion');
 // Route to retrieve documents based on query parameters
 router.get('/questions', async (req, res) => {
   try {
-    const { className, subjectName, chapterName, questionText } = req.query;
+    const { className } = req.query;
+
+    // Debugging log to see the incoming query parameter
+    console.log("Received className query:", className);
 
     // Find the class based on className
     const classResult = await ClassModel.findOne({ className });
 
+    // Debugging log to see the result from MongoDB
     if (!classResult) {
+      console.log("Class not found for className:", className);
       return res.status(404).json({ message: 'Class not found' });
     }
 
-    let filteredSubjects = classResult.subjects;
+    console.log("Class found:", classResult);
 
-    // Filter by subjectName if provided
-    if (subjectName) {
-      filteredSubjects = filteredSubjects.filter(subject => subject.subjectName === subjectName);
-    }
-
-    // Filter chapters within the filtered subjects if chapterName is provided
-    if (chapterName) {
-      filteredSubjects = filteredSubjects.map(subject => {
-        return {
-          ...subject._doc,
-          chapters: subject.chapters.filter(chapter => chapter.chapterName === chapterName)
-        };
-      });
-    }
-
-    // Filter questions within the filtered chapters if questionText is provided
-    if (questionText) {
-      filteredSubjects = filteredSubjects.map(subject => {
-        return {
-          ...subject._doc,
-          chapters: subject.chapters.map(chapter => {
-            return {
-              ...chapter._doc,
-              questions: chapter.questions.filter(question => question.questionText.includes(questionText))
-            };
-          })
-        };
-      });
-    }
-
-    // Return the filtered results
+    // Respond with the found class and its subjects
     res.status(200).json({
       message: 'Questions retrieved successfully',
       className: classResult.className,
-      subjects: filteredSubjects
+      subjects: classResult.subjects
     });
 
   } catch (error) {
+    // Catch any errors and log them for debugging
     console.error('Error fetching questions:', error);
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
