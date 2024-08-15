@@ -5,32 +5,10 @@ const ClassModel = require('../models/ModelQuestion');
 // Route to handle GET request to /api/questions with query parameters for filtering
 router.get('/questions', async (req, res) => {
   try {
-    const { subject, chapter, difficulty, type, topic, className } = req.query;
+    const { className } = req.query;
 
     const query = {};
     if (className) query['className'] = className;
-
-    if (subject) {
-      query['subjects'] = { 
-        $elemMatch: { subjectName: subject } 
-      };
-    }
-
-    if (chapter) {
-      query['subjects.chapters'] = { 
-        $elemMatch: { chapterName: chapter } 
-      };
-    }
-
-    if (difficulty || type || topic) {
-      query['subjects.chapters.questions'] = {
-        $elemMatch: {
-          'metaData.difficultyLevel': difficulty,
-          'metaData.questionType': type,
-          'metaData.topic': topic,
-        }
-      };
-    }
 
     console.log('Query:', JSON.stringify(query, null, 2));  // Log the query for debugging
 
