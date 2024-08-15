@@ -1,46 +1,47 @@
 const mongoose = require('mongoose');
 
-// Define the schema for resources
-const resourcesSchema = new mongoose.Schema({
-  imagePath: String,
-  tableDataPath: String
-}, { _id: false });  // _id: false to prevent creating _id for subdocuments
+// Define the schema for resources associated with questions
+const resourceSchema = new mongoose.Schema({
+  imagePath: { type: String, default: "None" },
+  tableDataPath: { type: String, default: "None" }
+});
 
-// Define the schema for metadata
+// Define the schema for metadata associated with questions
 const metaDataSchema = new mongoose.Schema({
-  difficultyLevel: String,
-  topic: String,
-  questionType: String,
-  bookTitle: String,
-  authors: String,
-  chapterPageNumber: String,
-  resources: resourcesSchema
-}, { _id: false });
+  difficultyLevel: { type: String },
+  topic: { type: String },
+  questionType: { type: String },
+  bookTitle: { type: String },
+  authors: { type: String },
+  chapterPageNumber: { type: String },
+  resources: resourceSchema
+});
 
-// Define the schema for questions
+// Define the schema for questions within a chapter
 const questionSchema = new mongoose.Schema({
-  questionText: String,
+  questionText: { type: String },
   metaData: metaDataSchema
-}, { _id: false });
+});
 
-// Define the schema for chapters
+// Define the schema for chapters within a subject
 const chapterSchema = new mongoose.Schema({
-  chapterName: String,
+  chapterName: { type: String },
   questions: [questionSchema]
-}, { _id: false });
+});
 
-// Define the schema for subjects
+// Define the schema for subjects within a class
 const subjectSchema = new mongoose.Schema({
-  subjectName: String,
+  subjectName: { type: String },
   chapters: [chapterSchema]
-}, { _id: false });
+});
 
-// Define the schema for class
-const classSchema = new mongoose.Schema({
-  className: String,
+// Define the top-level schema for school data
+const schoolDataSchema = new mongoose.Schema({
+  className: { type: String },
   subjects: [subjectSchema]
 });
 
-const ClassModel = mongoose.model('ClassModel', classSchema);
+// Create the model from the schema and export it
+const SchoolData = mongoose.model('SchoolData', schoolDataSchema);
 
-module.exports = ClassModel;
+module.exports = SchoolData;
