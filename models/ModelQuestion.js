@@ -3,8 +3,9 @@ const mongoose = require('mongoose');
 // Define the schema for resources
 const resourcesSchema = new mongoose.Schema({
   imagePath: String,
-  tableDataPath: String
-}, { _id: false }); // _id: false to prevent creating _id for subdocuments
+  tableDataPath: String,
+  _id: false // prevent creation of _id for subdocuments
+});
 
 // Define the schema for metadata
 const metaDataSchema = new mongoose.Schema({
@@ -14,26 +15,30 @@ const metaDataSchema = new mongoose.Schema({
   bookTitle: String,
   authors: String,
   chapterPageNumber: String,
-  resources: resourcesSchema
-}, { _id: false });
+  resources: resourcesSchema,
+  _id: false // prevent creation of _id for subdocuments
+});
 
 // Define the schema for questions
 const questionSchema = new mongoose.Schema({
   questionText: String,
-  metaData: metaDataSchema
-}, { _id: false });
+  metaData: metaDataSchema,
+  _id: false // prevent creation of _id for subdocuments
+});
 
 // Define the schema for chapters
 const chapterSchema = new mongoose.Schema({
   chapterName: String,
-  questions: [questionSchema]
-}, { _id: false });
+  questions: [questionSchema],
+  _id: false // prevent creation of _id for subdocuments
+});
 
 // Define the schema for subjects
 const subjectSchema = new mongoose.Schema({
   subjectName: String,
-  chapters: [chapterSchema]
-}, { _id: false });
+  chapters: [chapterSchema],
+  _id: false // prevent creation of _id for subdocuments
+});
 
 // Define the schema for class
 const classSchema = new mongoose.Schema({
