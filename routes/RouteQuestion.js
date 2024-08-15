@@ -1,11 +1,6 @@
-const express = require('express');
-const router = express.Router();
-const ClassModel = require('../models/ModelQuestion');
-
-// Route to retrieve documents based on query parameters
 router.get('/questions', async (req, res) => {
   try {
-    const { className, subjectName, chapterName, questionText } = req.query;
+    const { className } = req.query;
 
     const query = {};
 
@@ -13,19 +8,11 @@ router.get('/questions', async (req, res) => {
       query.className = className;
     }
 
-    if (subjectName) {
-      query['subjects.subjectName'] = subjectName;
-    }
-
-    if (chapterName) {
-      query['subjects.chapters.chapterName'] = chapterName;
-    }
-
-    if (questionText) {
-      query['subjects.chapters.questions.questionText'] = questionText;
-    }
-
     const classes = await ClassModel.find(query);
+
+    if (classes.length === 0) {
+      return res.status(404).json({ message: 'No classes found', classes: [] });
+    }
 
     res.status(200).json({ message: 'Questions retrieved successfully', classes });
   } catch (error) {
@@ -33,5 +20,3 @@ router.get('/questions', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 });
-
-module.exports = router;
