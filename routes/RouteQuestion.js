@@ -40,3 +40,5 @@ router.get('/questions', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 });
+
+module.exports = router;  // Ensure this is correctly placed at the end of the file
