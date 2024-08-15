@@ -25,7 +25,20 @@ router.get('/questions', async (req, res) => {
       query['subjects.chapters.questions.questionText'] = questionText;
     }
 
-    const classes = await ClassModel.find(query);
+    // Use MongoDB aggregation to find the matching documents
+    const classes = await ClassModel.aggregate([
+      { $match: query },
+      { $unwind: '$subjects' },
+      { $unwind: '$subjects.chapters' },
+      { $unwind: '$subjects.chapters.questions' },
+      { $match: query },
+      { $group: {
+          _id: '$_id',
+          className: { $first: '$className' },
+          subjects: { $push: '$subjects' }
+        }
+      }
+    ]);
 
     res.status(200).json({ message: 'Questions retrieved successfully', classes });
   } catch (error) {
