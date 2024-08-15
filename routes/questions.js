@@ -1,9 +1,23 @@
 const express = require('express');
-const router = express.Router();
-const Question = require('../models/question'); // Adjust the path according to your folder structure
+const mongoose = require('mongoose');
+const cors = require('cors');
+const Question = require('./models/question'); // Adjust the path as necessary
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// MongoDB connection string
+const MONGO_URI = 'mongodb+srv://tunwalhimanshu:kCyfmscb2spY14yG@paperbot.6vhle9d.mongodb.net/schoolData?retryWrites=true&w=majority&appName=paperbot';
+
+mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.log(err));
+
+app.use(cors());
+app.use(express.json());
 
 // Route to handle GET request to /api/questions with query parameters for filtering
-router.get('/questions', async (req, res) => {
+app.get('/api/questions', async (req, res) => {
   try {
     const { subject, chapter, difficulty, type, topic } = req.query;
 
@@ -24,7 +38,7 @@ router.get('/questions', async (req, res) => {
 });
 
 // Route to handle POST request to /api/questions/filter with query parameters for filtering
-router.post('/questions/filter', async (req, res) => {
+app.post('/api/questions/filter', async (req, res) => {
   try {
     const { difficultyLevel, type, topic, chapter, subject, chapterPagenumber, bookTitle, authors, class: classFilter } = req.body;
 
@@ -48,4 +62,11 @@ router.post('/questions/filter', async (req, res) => {
   }
 });
 
-module.exports = router;
+// Basic route
+app.get('/', (req, res) => {
+  res.send('Hello, World!');
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
