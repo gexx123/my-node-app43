@@ -1,22 +1,40 @@
 const mongoose = require('mongoose');
 
-// Define your Mongoose schema and model
+// Define the schema for a question
 const questionSchema = new mongoose.Schema({
-  chapter: String,
   questionText: String,
-  DifficultyLevel: String,
-  Subject: String,
-  Chaptername: String,
-  ChapterPagenumber: String,
-  ImagePath: String,
-  TableDataPath: String,
-  Topic: String,
-  QuestionType: String,
-  BookTitle: String,
-  Authors: String,
-  Class: String
+  metaData: {
+    difficultyLevel: String,
+    topic: String,
+    questionType: String,
+    bookTitle: String,
+    authors: String,
+    chapterPageNumber: String,
+    resources: {
+      imagePath: String,
+      tableDataPath: String
+    }
+  }
 });
 
-const Question = mongoose.model('Question', questionSchema);
+// Define the schema for a chapter
+const chapterSchema = new mongoose.Schema({
+  chapterName: String,
+  questions: [questionSchema]
+});
 
-module.exports = Question;
+// Define the schema for a subject
+const subjectSchema = new mongoose.Schema({
+  subjectName: String,
+  chapters: [chapterSchema]
+});
+
+// Define the schema for a class
+const classSchema = new mongoose.Schema({
+  className: String,
+  subjects: [subjectSchema]
+});
+
+const ClassModel = mongoose.model('ClassModel', classSchema);
+
+module.exports = ClassModel;
