@@ -7,29 +7,40 @@ router.get('/questions', async (req, res) => {
   try {
     const { className, subjectName, chapterName, questionText } = req.query;
 
-    // Build query object
-    const query = {};
+    // Build the aggregation pipeline
+    const pipeline = [];
 
     if (className) {
-      query.className = className;
+      pipeline.push({ $match: { className: className } });
     }
 
     if (subjectName) {
-      query['subjects.subjectName'] = subjectName;
+      pipeline.push({ $unwind: '$subjects' });
+      pipeline.push({ $match: { 'subjects.subjectName': subjectName } });
     }
 
     if (chapterName) {
-      query['subjects.chapters.chapterName'] = chapterName;
+      pipeline.push({ $unwind: '$subjects.chapters' });
+      pipeline.push({ $match: { 'subjects.chapters.chapterName': chapterName } });
     }
 
     if (questionText) {
-      query['subjects.chapters.questions.questionText'] = questionText;
+      pipeline.push({ $unwind: '$subjects.chapters.questions' });
+      pipeline.push({ $match: { 'subjects.chapters.questions.questionText': questionText } });
     }
 
-    console.log("Query:", query);
+    // Optionally, if you want to return only the matching questions
+    pipeline.push({
+      $group: {
+        _id: '$_id',
+        className: { $first: '$className' },
+        subjects: { $push: '$subjects' }
+      }
+    });
 
-    const classes = await ClassModel.find(query);
-    console.log("Results:", classes);
+    console.log("Aggregation Pipeline:", JSON.stringify(pipeline, null, 2));
+
+    const classes = await ClassModel.aggregate(pipeline);
 
     if (classes.length === 0) {
       return res.status(200).json({ message: 'No questions found', classes: [] });
