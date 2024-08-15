@@ -1,13 +1,12 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const RouteQuestion = require('./routes/RouteQuestion'); // Adjust the path as necessary
+const routeQuestion = require('./routes/RouteQuestion');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// MongoDB connection string
-const MONGO_URI = 'mongodb+srv://your_mongo_uri_here';
+const MONGO_URI = 'mongodb+srv://username:password@cluster.mongodb.net/schoolData?retryWrites=true&w=majority';
 
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB connected'))
@@ -16,10 +15,8 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
 app.use(cors());
 app.use(express.json());
 
-// Use the routes defined in RouteQuestion.js
-app.use('/api', RouteQuestion);
+app.use('/api', routeQuestion);
 
-// Basic route
 app.get('/', (req, res) => {
   res.send('Hello, World!');
 });
