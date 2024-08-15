@@ -1,13 +1,13 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const ClassModel = require('./models/ModelQuestion'); // Ensure the path is correct
+const RouteQuestion = require('./routes/RouteQuestion'); // Adjust the path as necessary
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // MongoDB connection string
-const MONGO_URI = 'mongodb+srv://tunwalhimanshu:kCyfmscb2spY14yG@paperbot.6vhle9d.mongodb.net/schoolData?retryWrites=true&w=majority&appName=paperbot';
+const MONGO_URI = 'mongodb+srv://your_mongo_uri_here';
 
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB connected'))
@@ -16,9 +16,8 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
 app.use(cors());
 app.use(express.json());
 
-// Use the updated routes
-const questionRoutes = require('./routes/RouteQuestion');
-app.use('/api', questionRoutes);
+// Use the routes defined in RouteQuestion.js
+app.use('/api', RouteQuestion);
 
 // Basic route
 app.get('/', (req, res) => {
