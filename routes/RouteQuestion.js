@@ -22,19 +22,15 @@ router.get('/questions', async (req, res) => {
     }
 
     if (questionText) {
-      query['subjects.chapters.questions.questionText'] = questionText;
+      query['subjects.chapters.questions.questionText'] = { $regex: questionText, $options: 'i' };
     }
 
-    console.log("Constructed Query:", JSON.stringify(query, null, 2));
+    const classes = await ClassModel.find(query);
 
-    const classes = await ClassModel.find(query).lean(); // .lean() returns plain JavaScript objects
-
-    if (classes.length === 0) {
-      console.log("No matching documents found.");
-      res.status(200).json({ message: 'No questions found', classes: [] });
-    } else {
-      console.log("Matching documents found:", JSON.stringify(classes, null, 2));
+    if (classes.length > 0) {
       res.status(200).json({ message: 'Questions retrieved successfully', classes });
+    } else {
+      res.status(200).json({ message: 'No questions found', classes: [] });
     }
   } catch (error) {
     console.error('Error fetching questions:', error);
