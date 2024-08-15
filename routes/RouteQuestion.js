@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const ClassModel = require('../models/ModelQuestion'); // Adjust the path according to your folder structure
+const ClassModel = require('../models/ModelQuestion');
 
 // Route to handle GET request to /api/questions with query parameters for filtering
 router.get('/questions', async (req, res) => {
@@ -9,11 +9,21 @@ router.get('/questions', async (req, res) => {
 
     const query = {};
     if (className) query['className'] = className;
-    if (subject) query['subjects.subjectName'] = subject;
-    if (chapter) query['subjects.chapters.chapterName'] = chapter;
-    if (difficulty) query['subjects.chapters.questions.metaData.difficultyLevel'] = difficulty;
-    if (type) query['subjects.chapters.questions.metaData.questionType'] = type;
-    if (topic) query['subjects.chapters.questions.metaData.topic'] = topic;
+    if (subject) {
+      query['subjects'] = { $elemMatch: { subjectName: subject } };
+    }
+    if (chapter) {
+      query['subjects.chapters'] = { $elemMatch: { chapterName: chapter } };
+    }
+    if (difficulty || type || topic) {
+      query['subjects.chapters.questions'] = {
+        $elemMatch: {
+          'metaData.difficultyLevel': difficulty,
+          'metaData.questionType': type,
+          'metaData.topic': topic,
+        }
+      };
+    }
 
     console.log('Query:', JSON.stringify(query, null, 2));  // Log the query for debugging
 
@@ -41,4 +51,4 @@ router.get('/questions', async (req, res) => {
   }
 });
 
-module.exports = router;  // Ensure this is correctly placed at the end of the file
+module.exports = router;
