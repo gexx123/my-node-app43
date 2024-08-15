@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const ClassModel = require('./models/ModelQuestion'); // Adjust the path as necessary
+const ClassModel = require('./models/ModelQuestion'); // Ensure the path is correct
 
 const app = express();
 const PORT = process.env.PORT || 3000;
