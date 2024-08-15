@@ -27,7 +27,12 @@ router.get('/questions', async (req, res) => {
 
     const classes = await ClassModel.find(query);
 
-    res.status(200).json({ message: 'Questions retrieved successfully', classes });
+    if (classes.length > 0) {
+      res.status(200).json({ message: 'Questions retrieved successfully', classes });
+    } else {
+      res.status(200).json({ message: 'No questions found', classes: [] });
+    }
+
   } catch (error) {
     console.error('Error fetching questions:', error);
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
