@@ -1,35 +1,41 @@
 const mongoose = require('mongoose');
 
-// Define the schema for a question
+// Define the schema for resources
+const resourcesSchema = new mongoose.Schema({
+  imagePath: String,
+  tableDataPath: String
+}, { _id: false }); // _id: false to prevent creating _id for subdocuments
+
+// Define the schema for metadata
+const metaDataSchema = new mongoose.Schema({
+  difficultyLevel: String,
+  topic: String,
+  questionType: String,
+  bookTitle: String,
+  authors: String,
+  chapterPageNumber: String,
+  resources: resourcesSchema
+}, { _id: false });
+
+// Define the schema for questions
 const questionSchema = new mongoose.Schema({
   questionText: String,
-  metaData: {
-    difficultyLevel: String,
-    topic: String,
-    questionType: String,
-    bookTitle: String,
-    authors: String,
-    chapterPageNumber: String,
-    resources: {
-      imagePath: String,
-      tableDataPath: String
-    }
-  }
-});
+  metaData: metaDataSchema
+}, { _id: false });
 
-// Define the schema for a chapter
+// Define the schema for chapters
 const chapterSchema = new mongoose.Schema({
   chapterName: String,
   questions: [questionSchema]
-});
+}, { _id: false });
 
-// Define the schema for a subject
+// Define the schema for subjects
 const subjectSchema = new mongoose.Schema({
   subjectName: String,
   chapters: [chapterSchema]
-});
+}, { _id: false });
 
-// Define the schema for a class
+// Define the schema for class
 const classSchema = new mongoose.Schema({
   className: String,
   subjects: [subjectSchema]
