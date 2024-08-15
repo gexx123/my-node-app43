@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const resourcesSchema = new mongoose.Schema({
   imagePath: String,
   tableDataPath: String
-}, { _id: false }); // { _id: false } to prevent creating _id for subdocuments
+}, { _id: false }); 
 
 // Define the schema for metadata
 const metaDataSchema = new mongoose.Schema({
