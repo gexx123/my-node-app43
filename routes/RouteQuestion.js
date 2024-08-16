@@ -7,18 +7,18 @@ router.get('/questions', async (req, res) => {
   try {
     const { className, subjectName } = req.query;
 
-    // Debugging log to see the incoming query parameter
+    // Logging incoming query parameters for debugging
     console.log("Received className query:", className);
     console.log("Received subjectName query:", subjectName);
 
     let query = {};
 
-    // If className is provided, use it to filter the results
+    // Build query to filter by className
     if (className) {
       query.className = className;
     }
 
-    // Find the class based on className (if provided)
+    // Find class document by className
     const classResult = await ClassModel.findOne(query);
 
     if (!classResult) {
@@ -28,14 +28,20 @@ router.get('/questions', async (req, res) => {
 
     let subjects = classResult.subjects;
 
-    // If subjectName is provided, filter the subjects within the class
+    // Filter subjects within the class by subjectName if provided
     if (subjectName) {
       subjects = subjects.filter(subject => subject.subjectName === subjectName);
+
+      if (subjects.length === 0) {
+        console.log("No subjects found for subjectName:", subjectName);
+        return res.status(404).json({ message: 'Subject not found for the given class' });
+      }
     }
 
+    // Log the found subjects for debugging
     console.log("Subjects found:", subjects);
 
-    // Return only the relevant subjects
+    // Return the filtered results
     res.status(200).json({
       message: 'Questions retrieved successfully',
       className: classResult.className,
@@ -43,7 +49,6 @@ router.get('/questions', async (req, res) => {
     });
 
   } catch (error) {
-    // Catch any errors and log them for debugging
     console.error('Error fetching questions:', error);
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
