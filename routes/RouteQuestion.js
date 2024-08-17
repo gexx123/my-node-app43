@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const ClassModel = require('../models/ModelQuestion');
 
-// Route to retrieve documents based on query parameters (Existing route)
+// Route to retrieve documents based on query parameters
 router.get('/questions', async (req, res) => {
   try {
     const { className, subjectName, chapterName, questionText } = req.query;
@@ -14,7 +14,7 @@ router.get('/questions', async (req, res) => {
     }
 
     // Find the class based on className (if provided)
-    const classResult = await ClassModel.findOne(query);
+    const classResult = await ClassModel.findOne(query).lean();
 
     if (!classResult) {
       return res.status(404).json({ message: 'Class not found' });
@@ -22,32 +22,45 @@ router.get('/questions', async (req, res) => {
 
     let subjects = classResult.subjects;
 
-    // If subjectName is provided, filter the subjects within the class
+    // Filter subjects if subjectName is provided
     if (subjectName) {
       subjects = subjects.filter(subject => subject.subjectName === subjectName);
+      if (subjects.length === 0) {
+        return res.status(404).json({ message: 'Subject not found' });
+      }
     }
 
-    // If chapterName is provided, filter the chapters within the subjects
+    // Filter chapters if chapterName is provided
     if (chapterName) {
       subjects = subjects.map(subject => {
+        const filteredChapters = subject.chapters.filter(chapter => chapter.chapterName === chapterName);
+        if (filteredChapters.length === 0) {
+          return res.status(404).json({ message: 'Chapter not found' });
+        }
         return {
-          ...subject._doc,
-          chapters: subject.chapters.filter(chapter => chapter.chapterName === chapterName)
+          ...subject,
+          chapters: filteredChapters
         };
       });
     }
 
-    // If questionText is provided, filter the questions within the chapters
+    // Filter questions if questionText is provided
     if (questionText) {
+      const regex = new RegExp(questionText, 'i'); // case-insensitive search
       subjects = subjects.map(subject => {
+        const filteredChapters = subject.chapters.map(chapter => {
+          const filteredQuestions = chapter.questions.filter(question => regex.test(question.questionText));
+          if (filteredQuestions.length === 0) {
+            return res.status(404).json({ message: 'No questions matching the text found' });
+          }
+          return {
+            ...chapter,
+            questions: filteredQuestions
+          };
+        });
         return {
-          ...subject._doc,
-          chapters: subject.chapters.map(chapter => {
-            return {
-              ...chapter._doc,
-              questions: chapter.questions.filter(question => question.questionText.includes(questionText))
-            };
-          })
+          ...subject,
+          chapters: filteredChapters
         };
       });
     }
@@ -64,7 +77,7 @@ router.get('/questions', async (req, res) => {
   }
 });
 
-// Route to retrieve all distinct class names (New route)
+// Route to retrieve all distinct class names
 router.get('/classnames', async (req, res) => {
   try {
     const classNames = await ClassModel.distinct("className");
@@ -84,11 +97,10 @@ router.get('/classnames', async (req, res) => {
   }
 });
 
-// Route to retrieve all documents from the collection (New route)
+// Route to retrieve all documents from the collection
 router.get('/allclasses', async (req, res) => {
   try {
-    // Fetch all documents from the collection
-    const allClasses = await ClassModel.find({});
+    const allClasses = await ClassModel.find({}).lean();
 
     if (!allClasses.length) {
       return res.status(404).json({ message: 'No classes found' });
