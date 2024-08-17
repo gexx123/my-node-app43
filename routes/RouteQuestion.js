@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const ClassModel = require('../models/ModelQuestion');
 
-// Route to retrieve documents based on query parameters (GET)
+// GET API: Retrieve documents based on query parameters
 router.get('/questions', async (req, res) => {
   try {
-    const { className, subjectName, chapterName, questionText, difficultyLevel, topic, questionType, bookTitle } = req.query;
+    const { className, subjectName, chapterName, questionText } = req.query;
 
     let query = {};
 
@@ -13,8 +13,7 @@ router.get('/questions', async (req, res) => {
       query.className = className;
     }
 
-    // Find the class based on className (if provided)
-    const classResult = await ClassModel.findOne(query).lean();
+    const classResult = await ClassModel.findOne(query);
 
     if (!classResult) {
       return res.status(404).json({ message: 'Class not found' });
@@ -22,65 +21,26 @@ router.get('/questions', async (req, res) => {
 
     let subjects = classResult.subjects;
 
-    // If subjectName is provided, filter the subjects within the class
     if (subjectName) {
       subjects = subjects.filter(subject => subject.subjectName === subjectName);
-      if (subjects.length === 0) {
-        return res.status(404).json({ message: 'Subject not found' });
-      }
     }
 
-    // If chapterName is provided, filter the chapters within the subjects
     if (chapterName) {
-      subjects = subjects.map(subject => {
-        const filteredChapters = subject.chapters.filter(chapter => chapter.chapterName === chapterName);
-        if (filteredChapters.length === 0) {
-          return res.status(404).json({ message: 'Chapter not found' });
-        }
-        return {
-          ...subject,
-          chapters: filteredChapters
-        };
-      });
+      subjects = subjects.map(subject => ({
+        ...subject._doc,
+        chapters: subject.chapters.filter(chapter => chapter.chapterName === chapterName)
+      }));
     }
 
-    // Filter questions by metadata if any of the metadata parameters are provided
-    subjects = subjects.map(subject => {
-      const filteredChapters = subject.chapters.map(chapter => {
-        let questions = chapter.questions;
-
-        if (questionText) {
-          const regex = new RegExp(questionText, 'i'); // case-insensitive search
-          questions = questions.filter(question => regex.test(question.questionText));
-        }
-
-        if (difficultyLevel) {
-          questions = questions.filter(question => question.metaData.difficultyLevel === difficultyLevel);
-        }
-
-        if (topic) {
-          questions = questions.filter(question => question.metaData.topic === topic);
-        }
-
-        if (questionType) {
-          questions = questions.filter(question => question.metaData.questionType === questionType);
-        }
-
-        if (bookTitle) {
-          questions = questions.filter(question => question.metaData.bookTitle === bookTitle);
-        }
-
-        return {
-          ...chapter,
-          questions: questions
-        };
-      });
-
-      return {
-        ...subject,
-        chapters: filteredChapters
-      };
-    });
+    if (questionText) {
+      subjects = subjects.map(subject => ({
+        ...subject._doc,
+        chapters: subject.chapters.map(chapter => ({
+          ...chapter._doc,
+          questions: chapter.questions.filter(question => question.questionText.includes(questionText))
+        }))
+      }));
+    }
 
     res.status(200).json({
       message: 'Questions retrieved successfully',
@@ -94,99 +54,26 @@ router.get('/questions', async (req, res) => {
   }
 });
 
-// Route to retrieve documents based on request body parameters (POST)
-router.post('/questions', async (req, res) => {
+// POST API: Add new class data
+router.post('/addclass', async (req, res) => {
   try {
-    const { className, subjectName, chapterName, questionText, difficultyLevel, topic, questionType, bookTitle } = req.body;
+    const newClass = new ClassModel(req.body);
 
-    let query = {};
+    // Save the new class to the database
+    await newClass.save();
 
-    if (className) {
-      query.className = className;
-    }
-
-    // Find the class based on className (if provided)
-    const classResult = await ClassModel.findOne(query).lean();
-
-    if (!classResult) {
-      return res.status(404).json({ message: 'Class not found' });
-    }
-
-    let subjects = classResult.subjects;
-
-    // If subjectName is provided, filter the subjects within the class
-    if (subjectName) {
-      subjects = subjects.filter(subject => subject.subjectName === subjectName);
-      if (subjects.length === 0) {
-        return res.status(404).json({ message: 'Subject not found' });
-      }
-    }
-
-    // If chapterName is provided, filter the chapters within the subjects
-    if (chapterName) {
-      subjects = subjects.map(subject => {
-        const filteredChapters = subject.chapters.filter(chapter => chapter.chapterName === chapterName);
-        if (filteredChapters.length === 0) {
-          return res.status(404).json({ message: 'Chapter not found' });
-        }
-        return {
-          ...subject,
-          chapters: filteredChapters
-        };
-      });
-    }
-
-    // Filter questions by metadata if any of the metadata parameters are provided
-    subjects = subjects.map(subject => {
-      const filteredChapters = subject.chapters.map(chapter => {
-        let questions = chapter.questions;
-
-        if (questionText) {
-          const regex = new RegExp(questionText, 'i'); // case-insensitive search
-          questions = questions.filter(question => regex.test(question.questionText));
-        }
-
-        if (difficultyLevel) {
-          questions = questions.filter(question => question.metaData.difficultyLevel === difficultyLevel);
-        }
-
-        if (topic) {
-          questions = questions.filter(question => question.metaData.topic === topic);
-        }
-
-        if (questionType) {
-          questions = questions.filter(question => question.metaData.questionType === questionType);
-        }
-
-        if (bookTitle) {
-          questions = questions.filter(question => question.metaData.bookTitle === bookTitle);
-        }
-
-        return {
-          ...chapter,
-          questions: questions
-        };
-      });
-
-      return {
-        ...subject,
-        chapters: filteredChapters
-      };
-    });
-
-    res.status(200).json({
-      message: 'Questions retrieved successfully',
-      className: classResult.className,
-      subjects: subjects
+    res.status(201).json({
+      message: 'New class added successfully',
+      classData: newClass
     });
 
   } catch (error) {
-    console.error('Error fetching questions:', error);
+    console.error('Error adding new class:', error);
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 });
 
-// Route to retrieve all distinct class names
+// GET API: Retrieve all class names
 router.get('/classnames', async (req, res) => {
   try {
     const classNames = await ClassModel.distinct("className");
@@ -206,10 +93,9 @@ router.get('/classnames', async (req, res) => {
   }
 });
 
-// Route to retrieve all documents from the collection
+// GET API: Retrieve all classes
 router.get('/allclasses', async (req, res) => {
   try {
-    // Fetch all documents from the collection
     const allClasses = await ClassModel.find({});
 
     if (!allClasses.length) {
