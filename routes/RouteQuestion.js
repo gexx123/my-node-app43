@@ -68,6 +68,72 @@ router.get('/questions', async (req, res) => {
   }
 });
 
+// POST API: Retrieve questions based on filters
+router.post('/getquestions', async (req, res) => {
+  try {
+    const { className, subjectName, chapterName, questionText, difficultyLevel, topic, questionType } = req.body;
+
+    let query = {};
+
+    if (className) {
+      query.className = className;
+    }
+
+    const classResult = await ClassModel.findOne(query);
+
+    if (!classResult) {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+
+    let subjects = classResult.subjects;
+
+    if (subjectName) {
+      subjects = subjects.filter(subject => subject.subjectName === subjectName);
+    }
+
+    if (chapterName) {
+      subjects = subjects.map(subject => ({
+        ...subject._doc,
+        chapters: subject.chapters.filter(chapter => chapter.chapterName === chapterName)
+      }));
+    }
+
+    if (questionText) {
+      subjects = subjects.map(subject => ({
+        ...subject._doc,
+        chapters: subject.chapters.map(chapter => ({
+          ...chapter._doc,
+          questions: chapter.questions.filter(question => question.questionText.includes(questionText))
+        }))
+      }));
+    }
+
+    if (difficultyLevel || topic || questionType) {
+      subjects = subjects.map(subject => ({
+        ...subject._doc,
+        chapters: subject.chapters.map(chapter => ({
+          ...chapter._doc,
+          questions: chapter.questions.filter(question => {
+            return (!difficultyLevel || question.metaData.difficultyLevel === difficultyLevel) &&
+                   (!topic || question.metaData.topic === topic) &&
+                   (!questionType || question.metaData.questionType === questionType);
+          })
+        }))
+      }));
+    }
+
+    res.status(200).json({
+      message: 'Questions retrieved successfully',
+      className: classResult.className,
+      subjects: subjects
+    });
+
+  } catch (error) {
+    console.error('Error fetching questions:', error);
+    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+  }
+});
+
 // POST API: Add new question data to a specific class
 router.post('/addquestion', async (req, res) => {
   try {
