@@ -71,7 +71,6 @@ router.post('/addquestion', async (req, res) => {
   try {
     const { className, subjectName, chapterName, questionText, metaData } = req.body;
 
-    // Find the class and subject to add the question to the specific chapter
     const classResult = await ClassModel.findOne({ className });
 
     if (!classResult) {
