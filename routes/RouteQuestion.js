@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { ClassModel, QuestionModel } = require('../models/ModelQuestion');
+const ClassModel = require('../models/ModelQuestion');
 
 // GET API: Retrieve documents based on query parameters
 router.get('/questions', async (req, res) => {
@@ -54,45 +54,113 @@ router.get('/questions', async (req, res) => {
   }
 });
 
-// POST API: Add new class data
-router.post('/addclass', async (req, res) => {
+// POST API: Retrieve documents based on query parameters sent in the body
+router.post('/getquestions', async (req, res) => {
   try {
-    const newClass = new ClassModel(req.body);
+    const { className, subjectName, chapterName, questionText, metaData } = req.body;
 
-    // Save the new class to the `classmodels` collection
-    await newClass.save();
+    let query = {};
 
-    res.status(201).json({
-      message: 'New class added successfully',
-      classData: newClass
+    if (className) {
+      query.className = className;
+    }
+
+    const classResult = await ClassModel.findOne(query);
+
+    if (!classResult) {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+
+    let subjects = classResult.subjects;
+
+    if (subjectName) {
+      subjects = subjects.filter(subject => subject.subjectName === subjectName);
+    }
+
+    if (chapterName) {
+      subjects = subjects.map(subject => ({
+        ...subject._doc,
+        chapters: subject.chapters.filter(chapter => chapter.chapterName === chapterName)
+      }));
+    }
+
+    if (questionText) {
+      subjects = subjects.map(subject => ({
+        ...subject._doc,
+        chapters: subject.chapters.map(chapter => ({
+          ...chapter._doc,
+          questions: chapter.questions.filter(question => question.questionText.includes(questionText))
+        }))
+      }));
+    }
+
+    if (metaData) {
+      subjects = subjects.map(subject => ({
+        ...subject._doc,
+        chapters: subject.chapters.map(chapter => ({
+          ...chapter._doc,
+          questions: chapter.questions.filter(question => {
+            return Object.keys(metaData).every(key => question.metaData[key] === metaData[key]);
+          })
+        }))
+      }));
+    }
+
+    res.status(200).json({
+      message: 'Questions retrieved successfully',
+      className: classResult.className,
+      subjects: subjects
     });
 
   } catch (error) {
-    console.error('Error adding new class:', error);
+    console.error('Error fetching questions:', error);
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 });
 
-// POST API: Add new question data to `questions` collection
+// POST API: Add new question data
 router.post('/addquestion', async (req, res) => {
   try {
-    const newQuestion = new QuestionModel(req.body);
+    const { className, subjectName, chapterName, questionText, metaData } = req.body;
 
-    // Save the new question to the `questions` collection
-    await newQuestion.save();
+    let query = { className };
+    let classResult = await ClassModel.findOne(query);
+
+    if (!classResult) {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+
+    let subject = classResult.subjects.find(sub => sub.subjectName === subjectName);
+    if (!subject) {
+      return res.status(404).json({ message: 'Subject not found' });
+    }
+
+    let chapter = subject.chapters.find(chap => chap.chapterName === chapterName);
+    if (!chapter) {
+      return res.status(404).json({ message: 'Chapter not found' });
+    }
+
+    // Add the new question to the chapter
+    chapter.questions.push({ questionText, metaData });
+
+    // Save the updated class document
+    await classResult.save();
 
     res.status(201).json({
       message: 'New question added successfully',
-      questionData: newQuestion
+      questionData: {
+        questionText,
+        metaData
+      }
     });
 
   } catch (error) {
-    console.error('Error adding new question:', error);
+    console.error('Error adding question:', error);
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 });
 
-// GET API: Retrieve all distinct class names
+// GET API: Retrieve all class names
 router.get('/classnames', async (req, res) => {
   try {
     const classNames = await ClassModel.distinct("className");
