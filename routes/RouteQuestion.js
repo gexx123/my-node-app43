@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const ClassModel = require('../models/ModelQuestion');
+const { ClassModel, QuestionModel } = require('../models/ModelQuestion');
 
 // GET API: Retrieve documents based on query parameters
 router.get('/questions', async (req, res) => {
@@ -59,7 +59,7 @@ router.post('/addclass', async (req, res) => {
   try {
     const newClass = new ClassModel(req.body);
 
-    // Save the new class to the database
+    // Save the new class to the `classmodels` collection
     await newClass.save();
 
     res.status(201).json({
@@ -73,7 +73,26 @@ router.post('/addclass', async (req, res) => {
   }
 });
 
-// GET API: Retrieve all class names
+// POST API: Add new question data to `questions` collection
+router.post('/addquestion', async (req, res) => {
+  try {
+    const newQuestion = new QuestionModel(req.body);
+
+    // Save the new question to the `questions` collection
+    await newQuestion.save();
+
+    res.status(201).json({
+      message: 'New question added successfully',
+      questionData: newQuestion
+    });
+
+  } catch (error) {
+    console.error('Error adding new question:', error);
+    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+  }
+});
+
+// GET API: Retrieve all distinct class names
 router.get('/classnames', async (req, res) => {
   try {
     const classNames = await ClassModel.distinct("className");
