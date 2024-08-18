@@ -29,12 +29,14 @@ const subjectSchema = new mongoose.Schema({
   chapters: [chapterSchema]
 });
 
-// Define the schema for classes
+// Define the schema for classes (to be stored in `classmodels`)
 const classSchema = new mongoose.Schema({
   className: String,
   subjects: [subjectSchema]
 });
 
-const ClassModel = mongoose.model('ClassModel', classSchema);
+// Create the models
+const ClassModel = mongoose.model('ClassModel', classSchema);  // This model uses the 'classmodels' collection
+const QuestionModel = mongoose.model('QuestionModel', questionSchema); // This model uses the 'questions' collection
 
-module.exports = ClassModel;
+module.exports = { ClassModel, QuestionModel };
