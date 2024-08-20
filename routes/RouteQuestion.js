@@ -14,7 +14,7 @@ router.get('/questions', async (req, res) => {
             query.className = className;
         }
 
-        const classResults = await ClassModel.find(query);
+        const classResults = await ClassModel.find(query); // Make sure this is correct
 
         if (!classResults.length) {
             return res.status(404).json({ message: 'No classes found' });
