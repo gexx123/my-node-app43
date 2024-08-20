@@ -36,6 +36,5 @@ const classSchema = new mongoose.Schema({
 });
 
 const ClassModel = mongoose.model('ClassModel', classSchema);
-const QuestionModel = mongoose.model('QuestionModel', questionSchema);
 
-module.exports = { ClassModel, QuestionModel };
+module.exports = ClassModel;
