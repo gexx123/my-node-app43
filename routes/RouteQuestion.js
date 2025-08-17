@@ -1,65 +1,67 @@
 // routes/RouteQuestion.js
 const express = require('express');
 const router = express.Router();
-const Question = require('../models/Question.js'); // explicit .js
-
-// Build filters from query
-function buildFilters(q) {
-  const filter = {};
-  if (q.class !== undefined) filter.class = isNaN(Number(q.class)) ? q.class : Number(q.class);
-  if (q.subject) filter.subject = q.subject;
-  if (q.chapter) filter.chapter = q.chapter;
-  if (q.difficulty) filter.difficulty = q.difficulty;
-  if (q.board) filter.board = q.board;
-  if (q.isVerified !== undefined) filter.isVerified = q.isVerified === 'true';
-  if (q.tags) filter.tags = { $in: q.tags.split(',').map(s => s.trim()).filter(Boolean) };
-  if (q.isPublic !== undefined) filter['accessControl.isPublic'] = q.isPublic === 'true';
-  return filter;
-}
+const Question = require('../models/Question');
 
 // GET /api/questions
+// Filters: class, subject, chapter, difficulty, tags (comma), isVerified, q (text),
+// Pagination: limit, skip; Sort by createdAt desc by default
 router.get('/questions', async (req, res) => {
   try {
-    const filter = buildFilters(req.query);
-    const limit = Math.min(parseInt(req.query.limit || '20', 10), 100);
-    const skip = parseInt(req.query.skip || '0', 10);
-    const sort = req.query.sort || '-createdAt';
+    const {
+      class: classFilter,
+      subject,
+      chapter,
+      difficulty,
+      tags,
+      isVerified,
+      q,
+      limit = 20,
+      skip = 0,
+      sort = '-createdAt'
+    } = req.query;
 
-    const projection = req.query.fields
-      ? req.query.fields.split(',').reduce((p, f) => (p[f] = 1, p), {})
-      : undefined;
+    const query = {};
+
+    if (classFilter !== undefined) query.class = isNaN(Number(classFilter)) ? classFilter : Number(classFilter);
+    if (subject) query.subject = subject;
+    if (chapter) query.chapter = chapter;
+    if (difficulty) query.difficulty = difficulty;
+    if (typeof isVerified !== 'undefined') query.isVerified = isVerified === 'true';
+
+    if (tags) {
+      const arr = Array.isArray(tags) ? tags : String(tags).split(',').map(t => t.trim()).filter(Boolean);
+      if (arr.length) query.tags = { $in: arr };
+    }
+
+    // Text search (requires text index)
+    if (q) {
+      query.$text = { $search: q };
+    }
+
+    const cursor = Question.find(query)
+      .sort(sort)
+      .skip(Number(skip))
+      .limit(Math.min(Number(limit), 100)); // cap to avoid abuse
+
+    // For textScore sorting if q is used
+    if (q) cursor.select({ score: { $meta: 'textScore' } }).sort({ score: { $meta: 'textScore' }, createdAt: -1 });
 
     const [items, total] = await Promise.all([
-      Question.find(filter, projection).sort(sort).skip(skip).limit(limit).lean(),
-      Question.countDocuments(filter),
+      cursor.lean(),
+      Question.countDocuments(query)
     ]);
 
-    res.json({ total, limit, skip, items });
-  } catch (err) {
-    res.status(500).json({ error: 'Internal Server Error', details: err.message });
-  }
-});
-
-// GET /api/questions/search?q=...
-router.get('/questions/search', async (req, res) => {
-  try {
-    const { q } = req.query;
-    if (!q) return res.status(400).json({ error: 'Missing q' });
-
-    const filter = buildFilters(req.query);
-    const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
-    const skip = parseInt(req.query.skip || '0', 10);
-
-    const items = await Question
-      .find({ $text: { $search: q }, ...filter }, { score: { $meta: 'textScore' } })
-      .sort({ score: { $meta: 'textScore' }, createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    res.json({ total: items.length, limit, skip, items });
-  } catch (err) {
-    res.status(500).json({ error: 'Internal Server Error', details: err.message });
+    res.json({
+      message: 'Questions retrieved successfully',
+      total,
+      limit: Number(limit),
+      skip: Number(skip),
+      data: items
+    });
+  } catch (error) {
+    console.error('GET /questions error:', error);
+    res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 });
 
@@ -67,53 +69,37 @@ router.get('/questions/search', async (req, res) => {
 router.get('/questions/:id', async (req, res) => {
   try {
     const doc = await Question.findOne({ id: req.params.id }).lean();
-    if (!doc) return res.status(404).json({ error: 'Not found' });
+    if (!doc) return res.status(404).json({ message: 'Not found' });
     res.json(doc);
-  } catch (err) {
-    res.status(500).json({ error: 'Internal Server Error', details: err.message });
+  } catch (error) {
+    console.error('GET /questions/:id error:', error);
+    res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 });
 
-// POST /api/questions (upsert by id)
+// POST /api/questions
+// Upsert by id (create or update); server sets timestamps
 router.post('/questions', async (req, res) => {
   try {
     const payload = req.body;
     if (!payload || !payload.id) {
-      return res.status(400).json({ error: 'Missing id in body' });
+      return res.status(400).json({ message: 'id is required' });
     }
-    if (!payload.createdBy) payload.createdBy = 'system';
 
-    const doc = await Question.findOneAndUpdate(
+    const now = new Date();
+    payload.updatedAt = now;
+    if (!payload.createdAt) payload.createdAt = now;
+
+    const result = await Question.findOneAndUpdate(
       { id: payload.id },
       { $set: payload },
-      { upsert: true, new: true, runValidators: true }
-    );
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean();
 
-    res.status(201).json({ message: 'Upserted', item: doc });
-  } catch (err) {
-    // Validation errors from Mongo validator or Mongoose
-    res.status(400).json({ error: 'Validation/Write error', details: err.message });
-  }
-});
-
-// POST /api/questions/bulk (bulk upsert by id)
-router.post('/questions/bulk', async (req, res) => {
-  try {
-    const items = Array.isArray(req.body) ? req.body : [];
-    if (!items.length) return res.status(400).json({ error: 'Body must be an array of questions' });
-
-    const ops = items.map(d => ({
-      updateOne: {
-        filter: { id: d.id },
-        update: { $set: { createdBy: 'system', ...d } },
-        upsert: true,
-      }
-    }));
-
-    const result = await Question.bulkWrite(ops, { ordered: false });
-    res.status(201).json({ message: 'Bulk upsert complete', result });
-  } catch (err) {
-    res.status(400).json({ error: 'Bulk write error', details: err.message });
+    res.status(201).json({ message: 'Upsert successful', data: result });
+  } catch (error) {
+    console.error('POST /questions error:', error);
+    res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 });
 
