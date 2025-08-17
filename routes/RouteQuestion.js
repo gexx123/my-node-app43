@@ -4,88 +4,104 @@ const router = express.Router();
 const Question = require('../models/Question');
 
 // GET /api/questions
-// Filters: class, subject, chapter, difficulty, tags (comma), isVerified, q (text),
-// Pagination: limit, skip; Sort by createdAt desc by default
+// Filters: class, subject, chapter, difficulty, tags (comma), isVerified (true/false)
+// Pagination: limit, skip | Sort: createdAt:-1 by default
 router.get('/questions', async (req, res) => {
   try {
     const {
-      class: classFilter,
+      class: cls,
       subject,
       chapter,
       difficulty,
       tags,
       isVerified,
-      q,
       limit = 20,
       skip = 0,
-      sort = '-createdAt'
+      sort = '-createdAt',
     } = req.query;
 
-    const query = {};
+    const q = {};
 
-    if (classFilter !== undefined) query.class = isNaN(Number(classFilter)) ? classFilter : Number(classFilter);
-    if (subject) query.subject = subject;
-    if (chapter) query.chapter = chapter;
-    if (difficulty) query.difficulty = difficulty;
-    if (typeof isVerified !== 'undefined') query.isVerified = isVerified === 'true';
+    if (cls !== undefined) q.class = isNaN(Number(cls)) ? cls : Number(cls);
+    if (subject) q.subject = subject;
+    if (chapter) q.chapter = chapter;
+    if (difficulty) q.difficulty = difficulty;
+    if (typeof isVerified !== 'undefined') q.isVerified = String(isVerified).toLowerCase() === 'true';
 
     if (tags) {
-      const arr = Array.isArray(tags) ? tags : String(tags).split(',').map(t => t.trim()).filter(Boolean);
-      if (arr.length) query.tags = { $in: arr };
+      const arr = String(tags).split(',').map(s => s.trim()).filter(Boolean);
+      if (arr.length) q.tags = { $in: arr };
     }
 
-    // Text search (requires text index)
-    if (q) {
-      query.$text = { $search: q };
-    }
-
-    const cursor = Question.find(query)
-      .sort(sort)
-      .skip(Number(skip))
-      .limit(Math.min(Number(limit), 100)); // cap to avoid abuse
-
-    // For textScore sorting if q is used
-    if (q) cursor.select({ score: { $meta: 'textScore' } }).sort({ score: { $meta: 'textScore' }, createdAt: -1 });
-
-    const [items, total] = await Promise.all([
-      cursor.lean(),
-      Question.countDocuments(query)
-    ]);
-
-    res.json({
-      message: 'Questions retrieved successfully',
-      total,
-      limit: Number(limit),
-      skip: Number(skip),
-      data: items
+    // parse sort string like "-createdAt,subject"
+    const sortObj = {};
+    String(sort).split(',').forEach(part => {
+      part = part.trim();
+      if (!part) return;
+      if (part.startsWith('-')) sortObj[part.slice(1)] = -1;
+      else sortObj[part] = 1;
     });
-  } catch (error) {
-    console.error('GET /questions error:', error);
-    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+
+    const data = await Question
+      .find(q)
+      .sort(Object.keys(sortObj).length ? sortObj : { createdAt: -1 })
+      .skip(Number(skip) || 0)
+      .limit(Math.min(Number(limit) || 20, 100));
+
+    res.json({ message: 'ok', count: data.length, items: data });
+  } catch (err) {
+    console.error('GET /questions error:', err);
+    res.status(500).json({ error: 'Internal Server Error', details: err.message });
+  }
+});
+
+// GET /api/questions/search?q=...&class=...&subject=... (text search)
+router.get('/questions/search', async (req, res) => {
+  try {
+    const { q: query, class: cls, subject, limit = 20, skip = 0 } = req.query;
+    if (!query || !String(query).trim()) {
+      return res.status(400).json({ error: 'Missing q parameter' });
+    }
+
+    const filter = { $text: { $search: String(query) } };
+    if (cls !== undefined) filter.class = isNaN(Number(cls)) ? cls : Number(cls);
+    if (subject) filter.subject = subject;
+
+    const items = await Question
+      .find(filter, { score: { $meta: 'textScore' } })
+      .sort({ score: { $meta: 'textScore' }, createdAt: -1 })
+      .skip(Number(skip) || 0)
+      .limit(Math.min(Number(limit) || 20, 100));
+
+    res.json({ message: 'ok', count: items.length, items });
+  } catch (err) {
+    console.error('GET /questions/search error:', err);
+    res.status(500).json({ error: 'Internal Server Error', details: err.message });
   }
 });
 
 // GET /api/questions/:id
 router.get('/questions/:id', async (req, res) => {
   try {
-    const doc = await Question.findOne({ id: req.params.id }).lean();
-    if (!doc) return res.status(404).json({ message: 'Not found' });
+    const doc = await Question.findOne({ id: req.params.id });
+    if (!doc) return res.status(404).json({ error: 'Not found' });
     res.json(doc);
-  } catch (error) {
-    console.error('GET /questions/:id error:', error);
-    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+  } catch (err) {
+    console.error('GET /questions/:id error:', err);
+    res.status(500).json({ error: 'Internal Server Error', details: err.message });
   }
 });
 
-// POST /api/questions
-// Upsert by id (create or update); server sets timestamps
+// POST /api/questions (upsert by id)
 router.post('/questions', async (req, res) => {
   try {
-    const payload = req.body;
-    if (!payload || !payload.id) {
-      return res.status(400).json({ message: 'id is required' });
+    const payload = req.body || {};
+
+    if (!payload.id) {
+      return res.status(400).json({ error: 'id is required' });
     }
 
+    // set timestamps
     const now = new Date();
     payload.updatedAt = now;
     if (!payload.createdAt) payload.createdAt = now;
@@ -93,13 +109,14 @@ router.post('/questions', async (req, res) => {
     const result = await Question.findOneAndUpdate(
       { id: payload.id },
       { $set: payload },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    ).lean();
+      { new: true, upsert: true, runValidators: true }
+    );
 
-    res.status(201).json({ message: 'Upsert successful', data: result });
-  } catch (error) {
-    console.error('POST /questions error:', error);
-    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+    res.status(201).json({ message: 'upserted', item: result });
+  } catch (err) {
+    console.error('POST /questions error:', err);
+    // Duplicate id unique index or validation errors bubble here
+    res.status(400).json({ error: 'Bad Request', details: err.message });
   }
 });
 
