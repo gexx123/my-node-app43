@@ -15,7 +15,7 @@ const SourceSchema = new mongoose.Schema({
   bookId: { type: String, default: null },
   bookTitle: { type: String, required: true },
   chapterName: { type: String, default: null },
-  pageNumber: { type: mongoose.Schema.Types.Mixed, default: null }, // number or string
+  pageNumber: { type: mongoose.Schema.Types.Mixed, default: null },
   exerciseNumber: { type: String, default: null },
   questionNumber: { type: String, default: null },
 }, { _id: false });
@@ -60,7 +60,7 @@ const QuestionSchema = new mongoose.Schema({
   estimatedTime: { type: Number, default: 60 },
   bloomsTaxonomy: { type: [String], default: [] },
 
-  class: { type: mongoose.Schema.Types.Mixed, required: true }, // number or string
+  class: { type: mongoose.Schema.Types.Mixed, required: true },
   subject: { type: String, required: true },
   board: { type: String, default: 'CBSE' },
   chapter: { type: String, required: true },
@@ -92,7 +92,11 @@ const QuestionSchema = new mongoose.Schema({
   strict: true
 });
 
-// Useful compound index (mirrors what you created in Atlas)
-QuestionSchema.index({ class: 1, subject: 1, chapter: 1, difficulty: 1, isVerified: 1, createdAt: -1 }, { name: 'filter_class_subject_chapter_diff_verified_createdAt' });
+// Compound index to match Atlas
+QuestionSchema.index(
+  { class: 1, subject: 1, chapter: 1, difficulty: 1, isVerified: 1, createdAt: -1 },
+  { name: 'filter_class_subject_chapter_diff_verified_createdAt' }
+);
 
-module.exports = mongoose.model('Question', QuestionSchema, 'questions');
+// Export with explicit model name and collection 'questions'
+module.exports = mongoose.models.Question || mongoose.model('Question', QuestionSchema, 'questions');
