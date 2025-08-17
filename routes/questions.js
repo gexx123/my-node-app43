@@ -47,7 +47,7 @@ router.get('/questions', async (req, res) => {
     if (chapter) q.chapter = chapter;
     if (difficulty) q.difficulty = difficulty;
     if (board) q.board = board;
-    if (chapterNumber !== undefined) q.chapterNumber = Number(chapterNumber);
+    if (chapterNumber !== undefined && chapterNumber !== '') q.chapterNumber = Number(chapterNumber);
     if (tags) q.tags = { $in: String(tags).split(',').map(t => t.trim()).filter(Boolean) };
 
     const v = parseBool(isVerified);
@@ -67,11 +67,7 @@ router.get('/questions', async (req, res) => {
 
     const [total, items] = await Promise.all([
       Question.countDocuments(q),
-      Question.find(q)
-        .sort(sort)
-        .skip(sk)
-        .limit(lim)
-        .lean()
+      Question.find(q).sort(sort).skip(sk).limit(lim).lean()
     ]);
 
     res.json({ total, count: items.length, items });
@@ -98,7 +94,7 @@ router.get('/questions/search', async (req, res) => {
   try {
     const { q: query, class: klass, subject, chapter, limit, skip } = req.query;
 
-    if (!query || !query.trim()) {
+    if (!query || !String(query).trim()) {
       return res.status(400).json({ error: 'Missing q parameter' });
     }
 
@@ -123,11 +119,10 @@ router.get('/questions/search', async (req, res) => {
   }
 });
 
-// POST /api/questions  (upsert by id)
-// If body.createdAt/updatedAt omitted, timestamps are handled by schema.
+// POST /api/questions  (upsert by id with timestamps for validator)
 router.post('/questions', async (req, res) => {
   try {
-    const payload = req.body;
+    const payload = { ...req.body };
 
     if (!payload?.id) {
       return res.status(400).json({ error: 'id is required' });
@@ -138,9 +133,17 @@ router.post('/questions', async (req, res) => {
       payload.class = Number(payload.class);
     }
 
+    // Ensure Date types for validator-required fields
+    const now = new Date();
+    const updatedAt = payload.updatedAt ? new Date(payload.updatedAt) : now;
+    const createdAt = payload.createdAt ? new Date(payload.createdAt) : now;
+
     const updated = await Question.findOneAndUpdate(
       { id: payload.id },
-      { $set: payload },
+      {
+        $set: { ...payload, updatedAt },
+        $setOnInsert: { createdAt }
+      },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     ).lean();
 
