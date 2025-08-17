@@ -1,149 +1,121 @@
+// routes/RouteQuestion.js
 const express = require('express');
 const router = express.Router();
-const ClassModel = require('../models/ModelQuestion');
+const Question = require('../models/Question');
 
-// GET API: Retrieve documents based on query parameters
+// Build filters from query
+function buildFilters(q) {
+  const filter = {};
+  if (q.class !== undefined) filter.class = isNaN(Number(q.class)) ? q.class : Number(q.class);
+  if (q.subject) filter.subject = q.subject;
+  if (q.chapter) filter.chapter = q.chapter;
+  if (q.difficulty) filter.difficulty = q.difficulty;
+  if (q.board) filter.board = q.board;
+  if (q.isVerified !== undefined) filter.isVerified = q.isVerified === 'true';
+  if (q.tags) filter.tags = { $in: q.tags.split(',').map(s => s.trim()).filter(Boolean) };
+  if (q.isPublic !== undefined) filter['accessControl.isPublic'] = q.isPublic === 'true';
+  return filter;
+}
+
+// GET /api/questions
 router.get('/questions', async (req, res) => {
-    try {
-        const { className, subjectName, chapterName, questionText } = req.query;
+  try {
+    const filter = buildFilters(req.query);
+    const limit = Math.min(parseInt(req.query.limit || '20', 10), 100);
+    const skip = parseInt(req.query.skip || '0', 10);
+    const sort = req.query.sort || '-createdAt'; // e.g., '-createdAt' or 'createdAt'
 
-        let query = {};
+    const projection = req.query.fields
+      ? req.query.fields.split(',').reduce((p, f) => (p[f] = 1, p), {})
+      : undefined;
 
-        // If a className is provided, use it to filter, else get all classes
-        if (className) {
-            query.className = className;
-        }
+    const [items, total] = await Promise.all([
+      Question.find(filter, projection).sort(sort).skip(skip).limit(limit).lean(),
+      Question.countDocuments(filter),
+    ]);
 
-        const classResults = await ClassModel.find(query); // Make sure this is correct
-
-        if (!classResults.length) {
-            return res.status(404).json({ message: 'No classes found' });
-        }
-
-        let filteredClasses = classResults;
-
-        // Filter subjects if subjectName is provided
-        if (subjectName) {
-            filteredClasses = filteredClasses.map(classResult => ({
-                ...classResult._doc,
-                subjects: classResult.subjects.filter(subject => subject.subjectName === subjectName)
-            }));
-        }
-
-        // Filter chapters if chapterName is provided
-        if (chapterName) {
-            filteredClasses = filteredClasses.map(classResult => ({
-                ...classResult._doc,
-                subjects: classResult.subjects.map(subject => ({
-                    ...subject._doc,
-                    chapters: subject.chapters.filter(chapter => chapter.chapterName === chapterName)
-                }))
-            }));
-        }
-
-        // Filter questions if questionText is provided
-        if (questionText) {
-            filteredClasses = filteredClasses.map(classResult => ({
-                ...classResult._doc,
-                subjects: classResult.subjects.map(subject => ({
-                    ...subject._doc,
-                    chapters: subject.chapters.map(chapter => ({
-                        ...chapter._doc,
-                        questions: chapter.questions.filter(question => question.questionText.includes(questionText))
-                    }))
-                }))
-            }));
-        }
-
-        res.status(200).json({
-            message: 'Questions retrieved successfully',
-            classes: filteredClasses
-        });
-
-    } catch (error) {
-        console.error('Error fetching questions:', error);
-        res.status(500).json({ error: 'Internal Server Error', details: error.message });
-    }
+    res.json({ total, limit, skip, items });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal Server Error', details: err.message });
+  }
 });
 
-// POST API: Add a new question to an existing class
-router.post('/addquestion', async (req, res) => {
-    try {
-        const { className, subjectName, chapterName, questionText, metaData } = req.body;
+// GET /api/questions/search?q=...
+router.get('/questions/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) return res.status(400).json({ error: 'Missing q' });
 
-        const classDoc = await ClassModel.findOne({ className });
+    const filter = buildFilters(req.query);
+    const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
+    const skip = parseInt(req.query.skip || '0', 10);
 
-        if (!classDoc) {
-            return res.status(404).json({ message: 'Class not found' });
-        }
+    const items = await Question
+      .find({ $text: { $search: q }, ...filter }, { score: { $meta: 'textScore' } })
+      .sort({ score: { $meta: 'textScore' }, createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
-        const subject = classDoc.subjects.find(sub => sub.subjectName === subjectName);
-        if (!subject) {
-            return res.status(404).json({ message: 'Subject not found' });
-        }
-
-        const chapter = subject.chapters.find(ch => ch.chapterName === chapterName);
-        if (!chapter) {
-            return res.status(404).json({ message: 'Chapter not found' });
-        }
-
-        const newQuestion = {
-            questionText,
-            metaData
-        };
-
-        chapter.questions.push(newQuestion);
-        await classDoc.save();
-
-        res.status(201).json({
-            message: 'New question added successfully',
-            questionData: newQuestion
-        });
-
-    } catch (error) {
-        console.error('Error adding question:', error);
-        res.status(500).json({ error: 'Internal Server Error', details: error.message });
-    }
+    res.json({ total: items.length, limit, skip, items });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal Server Error', details: err.message });
+  }
 });
 
-// GET API: Retrieve all class names
-router.get('/classnames', async (req, res) => {
-    try {
-        const classNames = await ClassModel.distinct("className");
-
-        if (!classNames.length) {
-            return res.status(404).json({ message: 'No classes found' });
-        }
-
-        res.status(200).json({
-            message: 'Class names retrieved successfully',
-            classNames: classNames
-        });
-
-    } catch (error) {
-        console.error('Error fetching class names:', error);
-        res.status(500).json({ error: 'Internal Server Error', details: error.message });
-    }
+// GET /api/questions/:id
+router.get('/questions/:id', async (req, res) => {
+  try {
+    const doc = await Question.findOne({ id: req.params.id }).lean();
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    res.json(doc);
+  } catch (err) {
+    res.status(500).json({ error: 'Internal Server Error', details: err.message });
+  }
 });
 
-// GET API: Retrieve all classes
-router.get('/allclasses', async (req, res) => {
-    try {
-        const allClasses = await ClassModel.find({});
-
-        if (!allClasses.length) {
-            return res.status(404).json({ message: 'No classes found' });
-        }
-
-        res.status(200).json({
-            message: 'All classes retrieved successfully',
-            classes: allClasses
-        });
-
-    } catch (error) {
-        console.error('Error fetching all classes:', error);
-        res.status(500).json({ error: 'Internal Server Error', details: error.message });
+// POST /api/questions (upsert by id)
+router.post('/questions', async (req, res) => {
+  try {
+    const payload = req.body;
+    if (!payload || !payload.id) {
+      return res.status(400).json({ error: 'Missing id in body' });
     }
+
+    // Ensure minimal required fields for validator
+    if (!payload.createdBy) payload.createdBy = 'system';
+
+    const doc = await Question.findOneAndUpdate(
+      { id: payload.id },
+      { $set: payload },
+      { upsert: true, new: true, runValidators: true }
+    );
+
+    res.status(201).json({ message: 'Upserted', item: doc });
+  } catch (err) {
+    res.status(400).json({ error: 'Validation/Write error', details: err.message });
+  }
+});
+
+// POST /api/questions/bulk (bulk upsert by id)
+router.post('/questions/bulk', async (req, res) => {
+  try {
+    const items = Array.isArray(req.body) ? req.body : [];
+    if (!items.length) return res.status(400).json({ error: 'Body must be an array of questions' });
+
+    const ops = items.map(d => ({
+      updateOne: {
+        filter: { id: d.id },
+        update: { $set: { createdBy: 'system', ...d } },
+        upsert: true,
+      }
+    }));
+
+    const result = await Question.bulkWrite(ops, { ordered: false });
+    res.status(201).json({ message: 'Bulk upsert complete', result });
+  } catch (err) {
+    res.status(400).json({ error: 'Bulk write error', details: err.message });
+  }
 });
 
 module.exports = router;
