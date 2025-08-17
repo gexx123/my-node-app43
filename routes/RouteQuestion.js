@@ -1,7 +1,7 @@
 // routes/RouteQuestion.js
 const express = require('express');
 const router = express.Router();
-const Question = require('../models/Question');
+const Question = require('../models/Question.js'); // explicit .js
 
 // Build filters from query
 function buildFilters(q) {
@@ -23,7 +23,7 @@ router.get('/questions', async (req, res) => {
     const filter = buildFilters(req.query);
     const limit = Math.min(parseInt(req.query.limit || '20', 10), 100);
     const skip = parseInt(req.query.skip || '0', 10);
-    const sort = req.query.sort || '-createdAt'; // e.g., '-createdAt' or 'createdAt'
+    const sort = req.query.sort || '-createdAt';
 
     const projection = req.query.fields
       ? req.query.fields.split(',').reduce((p, f) => (p[f] = 1, p), {})
@@ -81,8 +81,6 @@ router.post('/questions', async (req, res) => {
     if (!payload || !payload.id) {
       return res.status(400).json({ error: 'Missing id in body' });
     }
-
-    // Ensure minimal required fields for validator
     if (!payload.createdBy) payload.createdBy = 'system';
 
     const doc = await Question.findOneAndUpdate(
@@ -93,6 +91,7 @@ router.post('/questions', async (req, res) => {
 
     res.status(201).json({ message: 'Upserted', item: doc });
   } catch (err) {
+    // Validation errors from Mongo validator or Mongoose
     res.status(400).json({ error: 'Validation/Write error', details: err.message });
   }
 });
