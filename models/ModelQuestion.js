@@ -60,7 +60,7 @@ const QuestionSchema = new mongoose.Schema({
   estimatedTime: { type: Number, default: 60 },
   bloomsTaxonomy: { type: [String], default: [] },
 
-  class: { type: mongoose.Schema.Types.Mixed, required: true },
+  class: { type: mongoose.Schema.Types.Mixed, required: true }, // number or string
   subject: { type: String, required: true },
   board: { type: String, default: 'CBSE' },
   chapter: { type: String, required: true },
@@ -98,5 +98,4 @@ QuestionSchema.index(
   { name: 'filter_class_subject_chapter_diff_verified_createdAt' }
 );
 
-// Export with explicit model name and collection 'questions'
 module.exports = mongoose.models.Question || mongoose.model('Question', QuestionSchema, 'questions');
